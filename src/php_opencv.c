@@ -30,18 +30,31 @@
 #include "ext/standard/info.h"
 #include "php_opencv.h"
 
+typedef IplImage *IplImagePtr; // for ZEND_FETCH_RESOURCE
 
 static void php_free_opencv_image(zend_rsrc_list_entry *rsrc TSRMLS_DC);
 
-ZEND_BEGIN_ARG_INFO(arginfo_cvLoadImage, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_cvLoadImage, 0, 0, 2)
     ZEND_ARG_INFO(0, filename)
     ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_cvFlip, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_cvFlip, 0, 0, 1)
     ZEND_ARG_INFO(0, src)
     ZEND_ARG_INFO(0, dest)
     ZEND_ARG_INFO(0, flip_mode)
+ZEND_END_ARG_INFO()
+
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_cvCvtColor, 0, 0, 3)
+    ZEND_ARG_INFO(0, src)
+    ZEND_ARG_INFO(0, dest)
+    ZEND_ARG_INFO(0, code)
+    ZEND_ARG_INFO(0, dstCn)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_cvReleaseImage, 0, 0, 1)
+    ZEND_ARG_INFO(0, image)
 ZEND_END_ARG_INFO()
 
 /* If you declare any globals in php_opencv.h uncomment this:
@@ -57,6 +70,9 @@ static int le_iplimage;
  */
 const zend_function_entry opencv_functions[] = {
 	PHP_FE(cvLoadImage,	arginfo_cvLoadImage)
+    PHP_FE(cvFlip,	arginfo_cvFlip)
+    PHP_FE(cvCvtColor,	arginfo_cvCvtColor)
+    PHP_FE(cvReleaseImage,	arginfo_cvReleaseImage)
 	{NULL, NULL, NULL}	/* Must be the last line in opencv_functions[] */
 };
 /* }}} */
@@ -191,6 +207,59 @@ PHP_FUNCTION(cvLoadImage)
 }
 /* }}} */
 
+/* {{{ cvFlip(IplImage *src, IpImage *dest = null, int flip_mode = 0)
+ */
+PHP_FUNCTION(cvFlip)
+{
+    zval *src_z, *dest_z;
+    IplImage *src_img = NULL, *dest_img = NULL;
+    int flip_mode = 0;
+    switch (ZEND_NUM_ARGS()) {
+    case 1:
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &src_z) == FAILURE)  {
+            return;
+        }
+        ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage)
+        break;
+    case 2:
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &src_z, &dest_img) == FAILURE)  {
+            return;
+        }
+        ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage);
+        ZEND_FETCH_RESOURCE(dest_img, IplImagePtr, &dest_z, -1, "IplImage", le_iplimage);
+        break;
+    case 3:
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &src_z, &dest_img, &flip_mode) == FAILURE)  {
+            return;
+        }
+        ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage);
+        ZEND_FETCH_RESOURCE(dest_img, IplImagePtr, &dest_z, -1, "IplImage", le_iplimage);
+    default:
+        WRONG_PARAM_COUNT;
+        RETURN_FALSE;
+    }
+    cvClip(src_img, dest_img, flip_mode);
+}
+
+/* }}} */
+
+/* {{{ cvCvtColor(string filename, int flags)
+ */
+PHP_FUNCTION(cvCvtColor)
+{
+    ;
+}
+
+/* }}} */
+
+/* {{{ cvReleaseImage(IplImage img)
+ */
+PHP_FUNCTION(cvReleaseImage)
+{
+    ;
+}
+
+/* }}} */
 
 /* {{{ php_free_gd_image
  */
