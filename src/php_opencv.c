@@ -222,23 +222,28 @@ PHP_FUNCTION(cvFlip)
         ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage)
         break;
     case 2:
-        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &src_z, &dest_img) == FAILURE)  {
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &src_z, &dest_z) == FAILURE)  {
             return;
         }
         ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage);
         ZEND_FETCH_RESOURCE(dest_img, IplImagePtr, &dest_z, -1, "IplImage", le_iplimage);
         break;
     case 3:
-        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &src_z, &dest_img, &flip_mode) == FAILURE)  {
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &src_z, &dest_z, &flip_mode) == FAILURE)  {
             return;
         }
         ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage);
-        ZEND_FETCH_RESOURCE(dest_img, IplImagePtr, &dest_z, -1, "IplImage", le_iplimage);
+        if (src_z == dest_z) {
+            dest_img = src_img;
+        } else {
+            ZEND_FETCH_RESOURCE(dest_img, IplImagePtr, &dest_z, -1, "IplImage", le_iplimage);
+        }
+        break;
     default:
         WRONG_PARAM_COUNT;
         RETURN_FALSE;
     }
-    cvClip(src_img, dest_img, flip_mode);
+    cvFlip(src_img, dest_img, flip_mode);
 }
 
 /* }}} */
