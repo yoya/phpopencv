@@ -50,7 +50,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_cvCvtColor, 0, 0, 3)
     ZEND_ARG_INFO(0, src)
     ZEND_ARG_INFO(0, dest)
     ZEND_ARG_INFO(0, code)
-    ZEND_ARG_INFO(0, dstCn)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_cvReleaseImage, 0, 0, 1)
@@ -194,25 +193,25 @@ PHP_FUNCTION(cvLoadImage)
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl", &filename, &filename_len, &flags) == FAILURE) {
         return ;
     }
-    buff = malloc(filename_len + 1);
+    buff = emalloc(filename_len + 1);
     memcpy(buff, filename, filename_len);
     buff[filename_len] = '\0';
     img = cvLoadImage(buff, flags);
-    free(buff);
+    efree(buff);
     if (img == NULL) {
-            php_error_docref(NULL TSRMLS_CC, E_WARNING, "cvLoadImage failed");
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "cvLoadImage failed");
         RETURN_FALSE;
     }
     ZEND_REGISTER_RESOURCE(return_value, img, le_iplimage);
 }
 /* }}} */
 
-/* {{{ cvFlip(IplImage *src, IpImage *dest = null, int flip_mode = 0)
+/* {{{ cvFlip(IplImage *src, IpImage *dst = null, int flip_mode = 0)
  */
 PHP_FUNCTION(cvFlip)
 {
-    zval *src_z, *dest_z;
-    IplImage *src_img = NULL, *dest_img = NULL;
+    zval *src_z, *dst_z;
+    IplImage *src_img = NULL, *dst_img = NULL;
     int flip_mode = 0;
     switch (ZEND_NUM_ARGS()) {
     case 1:
@@ -222,37 +221,50 @@ PHP_FUNCTION(cvFlip)
         ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage)
         break;
     case 2:
-        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &src_z, &dest_z) == FAILURE)  {
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rr", &src_z, &dst_z) == FAILURE)  {
             return;
         }
         ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage);
-        ZEND_FETCH_RESOURCE(dest_img, IplImagePtr, &dest_z, -1, "IplImage", le_iplimage);
+        ZEND_FETCH_RESOURCE(dst_img, IplImagePtr, &dst_z, -1, "IplImage", le_iplimage);
         break;
     case 3:
-        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &src_z, &dest_z, &flip_mode) == FAILURE)  {
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &src_z, &dst_z, &flip_mode) == FAILURE)  {
             return;
         }
         ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage);
-        if (src_z == dest_z) {
-            dest_img = src_img;
+        if (src_z == dst_z) {
+            dst_img = src_img;
         } else {
-            ZEND_FETCH_RESOURCE(dest_img, IplImagePtr, &dest_z, -1, "IplImage", le_iplimage);
+            ZEND_FETCH_RESOURCE(dst_img, IplImagePtr, &dst_z, -1, "IplImage", le_iplimage);
         }
         break;
     default:
         WRONG_PARAM_COUNT;
         RETURN_FALSE;
     }
-    cvFlip(src_img, dest_img, flip_mode);
+    cvFlip(src_img, dst_img, flip_mode);
 }
 
 /* }}} */
 
-/* {{{ cvCvtColor(string filename, int flags)
+/* {{{ cvCvtColor(IplImage *src, IplImage *dst, int code)
  */
 PHP_FUNCTION(cvCvtColor)
 {
-    ;
+    zval *src_z, *dst_z;
+    IplImage *src_img = NULL, *dst_img = NULL;
+    int code = 0;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rrl", &src_z, &dst_z, &code) == FAILURE)  {
+            return;
+    }
+    ZEND_FETCH_RESOURCE(src_img, IplImagePtr, &src_z, -1, "IplImage", le_iplimage);
+    if (src_z == dst_z) {
+        dst_img = src_img;
+    } else {
+        ZEND_FETCH_RESOURCE(dst_img, IplImagePtr, &dst_z, -1, "IplImage", le_iplimage);
+    }
+    cvCvtColor(src_img, dst_img, code);
 }
 
 /* }}} */
@@ -261,6 +273,18 @@ PHP_FUNCTION(cvCvtColor)
  */
 PHP_FUNCTION(cvReleaseImage)
 {
+    zval *img_z;
+    IplImage *img;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &img_z) == FAILURE) {
+        return;
+    }
+
+    ZEND_FETCH_RESOURCE(img, IplImagePtr, &img_z, -1, "IplImage", le_iplimage);
+
+    zend_list_delete(Z_LVAL_P(img_z));
+
+    RETURN_TRUE;
     ;
 }
 
